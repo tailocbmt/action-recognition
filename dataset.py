@@ -20,9 +20,9 @@ class TripletVideoDataset(Dataset):
             clip_len (int, optional): Determines how many frames are there in each clip. Defaults to 8. 
         """
 
-    def __init__(self, csvPath, mode='train', clip_len=8):
-        self.dataframe = pd.read_csv(csvPath)
-        self.tripletTrain = self.dataframe.iloc['status'==mode, 0:3]
+    def __init__(self, csvPath, mode='train', clip_len=8, dir='/content/'):
+        self.dataframe = pd.read_csv(csvPath) 
+        self.triplets = self.dataframe.iloc['status'==mode, 0:3]
         self.clip_len = clip_len
 
         if mode=='train':
@@ -43,11 +43,11 @@ class TripletVideoDataset(Dataset):
 
     def __getitem__(self, index):
         # loading and preprocessing. TODO move them to transform classes
-        tripletPath = self.loadvideo(self.tripletTrain[index])
+        tripletPath = self.loadvideo(self.triplets[index])
         triplets = []
         
         for path in tripletPath:
-            buffer = self.crop(path, self.clip_len, self.crop_size)
+            buffer = self.crop(dir+path, self.clip_len, self.crop_size)
             buffer = self.normalize(buffer)
             triplets.append(buffer)
 

@@ -132,3 +132,5 @@ if __name__=="__main__":
     parser.add_argument("epoch", type=int,default=50)
     parser.add_argument("csvPath", type=str)
     parser.add_argument("savePath", type=str, default="model_data.pth.tar")
+    args = parser.parse_args()
+    train_model(num_classes=args.numClasses, csvPath=args.csvPath, num_epochs=args.epoch, save=args.savePath)
