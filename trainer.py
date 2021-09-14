@@ -36,17 +36,18 @@ def train_model(num_classes, csvPath, layer_sizes=[2, 2, 2, 2], num_epochs=45, s
     model = r2plus1d_18(pretrained=True)
     num_features = model.fc.in_features
     model.fc = nn.Linear(num_features,num_classes)
+    model = model.to(device)
 
     criterion = nn.TripletMarginLoss(margin=1.0, p=2) # standard crossentropy loss for classification
     optimizer = optim.SGD(model.parameters(), lr=0.001)  # hyperparameters as given in paper sec 4.1
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
 
     # prepare the dataloaders into a dict
-    train_dataloader = DataLoader(TripletVideoDataset(csvPath), batch_size=8, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(TripletVideoDataset(csvPath), batch_size=4, shuffle=True, num_workers=4)
     # IF training on Kinetics-600 and require exactly a million samples each epoch, 
     # import VideoDataset1M and uncomment the following
     # train_dataloader = DataLoader(VideoDataset1M(directory), batch_size=32, num_workers=4)
-    val_dataloader = DataLoader(TripletVideoDataset(csvPath, mode='val'), batch_size=8, num_workers=4)
+    val_dataloader = DataLoader(TripletVideoDataset(csvPath, mode='val'), batch_size=4, num_workers=4)
     dataloaders = {'train': train_dataloader, 'val': val_dataloader}
 
     dataset_sizes = {x: len(dataloaders[x].dataset) for x in ['train', 'val']}
@@ -88,7 +89,7 @@ def train_model(num_classes, csvPath, layer_sizes=[2, 2, 2, 2], num_epochs=45, s
 
             for inputs in dataloaders[phase]:
                 # move inputs and labels to the device the training is taking place on
-                inputs = inputs.to(device)
+                inputs = [input.to(device) for input in inputs]
                 optimizer.zero_grad()
 
                 # keep intermediate states iff backpropagation will be performed. If false, 
@@ -107,7 +108,7 @@ def train_model(num_classes, csvPath, layer_sizes=[2, 2, 2, 2], num_epochs=45, s
                         loss.backward()
                         optimizer.step()   
 
-                running_loss += loss.item() * inputs.size(0)
+                running_loss += loss.item() * 4
 
             epoch_loss = running_loss / dataset_sizes[phase]
 
