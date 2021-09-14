@@ -5,8 +5,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
-from torchvision.transforms import Compose
-from torchvision.transforms._transforms_video import NormalizeVideo, ToTensorVideo, RandomHorizontalFlipVideo
+from torchvideo.transforms import Compose, NDArrayToPILVideo, NormalizeVideo, RandomHorizontalFlipVideo, PILVideoToTensor
 
 class TripletVideoDataset(Dataset):
     r"""A Dataset for a folder of videos. Expects the directory structure to be
@@ -22,17 +21,21 @@ class TripletVideoDataset(Dataset):
 
     def __init__(self, csvPath, mode='train', clip_len=8, dir='/content/'):
         self.dataframe = pd.read_csv(csvPath) 
-        self.triplets = self.dataframe.iloc['status'==mode, 0:3]
+        self.dataframe = self.dataframe.replace(r'\\','/', regex=True)
+        self.triplets = self.dataframe.loc[self.dataframe['status']==mode, ['A', 'P', 'N']]
         self.clip_len = clip_len
 
         if mode=='train':
             self.transform = Compose([
-                            ToTensorVideo(),
+                            NDArrayToPILVideo(format="cthw"),
+                            RandomHorizontalFlipVideo(),
+                            PILVideoToTensor(),
                             NormalizeVideo(mean=[0.43216, 0.394666, 0.37645],std=[0.22803, 0.22145, 0.216989]),
-                            RandomHorizontalFlipVideo()])
+                            ])
         else:
             self.transform = Compose([
-                            ToTensorVideo(),
+                            NDArrayToPILVideo(format="cthw"),
+                            PILVideoToTensor(),
                             NormalizeVideo(mean=[0.43216, 0.394666, 0.37645],std=[0.22803, 0.22145, 0.216989])
             ])
 
@@ -43,15 +46,16 @@ class TripletVideoDataset(Dataset):
 
     def __getitem__(self, index):
         # loading and preprocessing. TODO move them to transform classes
-        tripletPath = self.loadvideo(self.triplets[index])
+        tripletPath = self.triplets.iloc[index, :]
         triplets = []
         
         for path in tripletPath:
-            buffer = self.crop(dir+path, self.clip_len, self.crop_size)
+            buffer = self.loadvideo('/content/'+path)
+            buffer = self.crop(buffer, self.clip_len, self.crop_size)
             buffer = self.normalize(buffer)
             triplets.append(buffer)
 
-        return buffer   
+        return triplets 
         
     def loadvideo(self, fname):
         # initialize a VideoCapture object to read video data into a numpy array
@@ -111,7 +115,7 @@ class TripletVideoDataset(Dataset):
         return buffer
 
     def __len__(self):
-        return len(self.fnames)
+        return len(self.triplets)
 
 class VideoDataset(Dataset):
     r"""A Dataset for a folder of videos. Expects the directory structure to be
