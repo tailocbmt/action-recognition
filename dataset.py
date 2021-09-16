@@ -64,7 +64,7 @@ class TripletVideoDataset(Dataset):
         frame_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
         # create a buffer. Must have dtype float, so it gets converted to a FloatTensor by Pytorch later
-        buffer = np.empty((frame_count, self.resize_height, self.resize_width, 3), np.dtype('float32'))
+        buffer = np.empty((frame_count, self.resize_height, self.resize_width, 3), np.dtype('uint8'))
 
         count = 0
         retaining = True
