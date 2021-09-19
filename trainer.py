@@ -9,7 +9,7 @@ from torchvision.models.video import r2plus1d_18
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import TripletVideoDataset
+from dataset import TripletFrameDataset
 from network import R2Plus1DClassifier
 
 # Use GPU if available else revert to CPU
@@ -43,11 +43,11 @@ def train_model(num_classes, csvPath, layer_sizes=[2, 2, 2, 2], num_epochs=45, s
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
 
     # prepare the dataloaders into a dict
-    train_dataloader = DataLoader(TripletVideoDataset(csvPath), batch_size=4, shuffle=True, num_workers=4)
+    train_dataloader = DataLoader(TripletFrameDataset(csvPath), batch_size=4, shuffle=True, num_workers=4)
     # IF training on Kinetics-600 and require exactly a million samples each epoch, 
     # import VideoDataset1M and uncomment the following
     # train_dataloader = DataLoader(VideoDataset1M(directory), batch_size=32, num_workers=4)
-    val_dataloader = DataLoader(TripletVideoDataset(csvPath, mode='val'), batch_size=4, num_workers=4)
+    val_dataloader = DataLoader(TripletFrameDataset(csvPath, mode='val'), batch_size=4, num_workers=4)
     dataloaders = {'train': train_dataloader, 'val': val_dataloader}
 
     dataset_sizes = {x: len(dataloaders[x].dataset) for x in ['train', 'val']}

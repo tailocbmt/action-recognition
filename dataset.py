@@ -59,8 +59,9 @@ class TripletFrameDataset(Dataset):
         
     def loadvideo(self, fname):
         # initialize a VideoCapture object to read video data into a numpy array
+        
         frameDirPath = fname.split('.')[0]
-
+        
         frame_count = os.listdir(frameDirPath)
         # create a buffer. Must have dtype float, so it gets converted to a FloatTensor by Pytorch later
         buffer = np.empty((len(frame_count), self.resize_height, self.resize_width, 3), np.dtype('uint8'))
@@ -69,9 +70,9 @@ class TripletFrameDataset(Dataset):
 
         # read in each frame, one at a time into the numpy buffer array
         for img in frame_count:
-            frame = cv2.imread(img)
+            frame = cv2.imread(os.path.join(frameDirPath, img))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            frame_height, frame_width = frame.shape
+            frame_height, frame_width,_ = frame.shape
             # will resize frames if not already final size
             # NOTE: strongly recommended to resize them during the download process. This script
             # will process videos of any size, but will take longer the larger the video file.
