@@ -173,10 +173,11 @@ def pose_inference(args, video_paths, det_results):
     print('Performing Human Pose Estimation for each frame')
     prog_bar = mmcv.ProgressBar(len(video_paths))
 
-    for videoPath in video_paths:
+    for i,videoPath in enumerate(video_paths):
         frameResult = []
         frame_paths = sorted(os.listdir(videoPath))
-        for f, d in zip(frame_paths, det_results):
+        det_result = det_results[i]
+        for f, d in zip(frame_paths, det_result):
             # Align input format
             d = [dict(bbox=x) for x in list(d)]
             pose = inference_top_down_pose_model(model, osp.join(videoPath,f), d, format='xyxy')[0]
