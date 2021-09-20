@@ -45,7 +45,8 @@ except (ImportError, ModuleNotFoundError):
 def parse_args():
     parser = argparse.ArgumentParser(description='Create Data format POSE3D')
     parser.add_argument('src', help='source directory', default='/content')
-    parser.add_argument('annotation', help='csv contains video paths')
+    parser.add_argument('annotation', help='File contains annotation')
+    parser.add_argument('savePath', help='Path to save annotation')
 
     parser.add_argument(
         '--det-config',
@@ -106,7 +107,7 @@ def frame_extraction(src , annotationPath, short_side):
         line = line.split()
         videoLabels.append(line[1])
         
-        videoPath = osp.join(src, [0])
+        videoPath = osp.join(src, line[0])
         target_dir = videoPath.split('.')[0]
         os.makedirs(target_dir, exist_ok=True)
         # Should be able to handle videos up to several hours
@@ -159,7 +160,7 @@ def detection_inference(args, video_paths):
             result = result[0][result[0][:, 4] >= args.det_score_thr]
             frameResult.append(result)
         
-        result.append(frameResult)
+        results.append(frameResult)
         prog_bar.update()
     return results
 
@@ -236,9 +237,6 @@ def main():
                                                         args.annotation,
                                                         args.short_side)
 
-    # Get clip_len, frame_interval and calculate center index of each clip
-    config = mmcv.Config.fromfile(args.config)
-    config.merge_from_dict(args.cfg_options)
 
     # Get Human detection results
     det_results = detection_inference(args, video_paths)
