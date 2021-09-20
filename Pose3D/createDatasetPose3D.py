@@ -153,9 +153,9 @@ def detection_inference(args, video_paths):
 
     for videoPath in video_paths:
         frameResult = []
-        frame_paths = os.listdir(videoPath)
+        frame_paths = sorted(os.listdir(videoPath))
         for frame_path in frame_paths:
-            result = inference_detector(model, frame_path)
+            result = inference_detector(model, osp.join(videoPath,frame_path))
             # We only keep human detections with score larger than det_score_thr
             result = result[0][result[0][:, 4] >= args.det_score_thr]
             frameResult.append(result)
@@ -175,11 +175,11 @@ def pose_inference(args, video_paths, det_results):
 
     for videoPath in video_paths:
         frameResult = []
-        frame_paths = os.listdir(videoPath)
+        frame_paths = sorted(os.listdir(videoPath))
         for f, d in zip(frame_paths, det_results):
             # Align input format
             d = [dict(bbox=x) for x in list(d)]
-            pose = inference_top_down_pose_model(model, f, d, format='xyxy')[0]
+            pose = inference_top_down_pose_model(model, osp.join(videoPath,f), d, format='xyxy')[0]
             frameResult.append(pose)
         
         results.append(frameResult)
