@@ -9,10 +9,7 @@ import mmcv
 import numpy as np
 import torch
 from mmcv import DictAction
-from mmcv.runner import load_checkpoint
 
-from mmaction.datasets.pipelines import Compose
-from mmaction.models import build_model
 from mmaction.utils import import_module_error_func
 
 try:
@@ -141,7 +138,7 @@ def frame_extraction(src , annotationPath, short_side):
         os.remove(videoPath)
             
 
-    return video_paths, frameHW, videoLabels
+    return video_paths, (853, 480), videoLabels
 
 
 def detection_inference(args, video_paths):
@@ -184,12 +181,17 @@ def pose_inference(args, video_paths, det_results):
     for i,videoPath in enumerate(video_paths):
         frameResult = []
         frame_paths = sorted(os.listdir(videoPath))
+        
         det_result = det_results[i]
+        
         for f, d in zip(frame_paths, det_result):
             # Align input format
             d = [dict(bbox=x) for x in list(d)]
             pose = inference_top_down_pose_model(model, osp.join(videoPath,f), d, format='xyxy')[0]
-            frameResult.append(pose)
+            if len(pose)==0:
+              frameResult.append(pose)
+            else: 
+              frameResult.append(pose[0])
         
         results.append(frameResult)
         prog_bar.update()
@@ -213,7 +215,7 @@ def createAnnotation(pose_results, frameHW, video_paths, videoLabels):
         frame_dir = video_paths[i]
         num_frame = len(os.listdir(frame_dir))
         label = videoLabels[i]
-
+        
         num_person = max([len(x) for x in pose_results[i]])
 
         keypoint = np.zeros((num_person, num_frame, num_keypoint, 2),
