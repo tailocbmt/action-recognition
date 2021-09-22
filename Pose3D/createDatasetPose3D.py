@@ -104,7 +104,8 @@ def frame_extraction(src , annotationPath, short_side):
 
     for line in videoPaths.readlines():
         # Load the video, extract frames into ./tmp/video_name
-        line = line.split()
+        line = line.replace('\\','/')
+        line = line.split(',')
         videoLabels.append(line[1])
         
         videoPath = osp.join(src, line[0])
@@ -122,16 +123,23 @@ def frame_extraction(src , annotationPath, short_side):
             if new_h is None:
                 h, w, _ = frame.shape
                 new_w, new_h = mmcv.rescale_size((w, h), (short_side, np.Inf))
-
+            print(frame.shape)
+            
             frame = mmcv.imresize(frame, (new_w, new_h))
+            if (h < w):
+              frame = cv2.rotate(frame, cv2.cv2.ROTATE_90_CLOCKWISE)
+              new_h, new_w = new_w, new_h
 
-            frameHW = (new_w, new_h)
+            frameHW = (new_h, new_w)
             frame_path = frame_tmpl.format(cnt + 1)
             
-
+            
             cv2.imwrite(frame_path, frame)
             cnt += 1
             flag, frame = vid.read()
+
+        os.remove(videoPath)
+            
 
     return video_paths, frameHW, videoLabels
 
