@@ -44,15 +44,23 @@ class TripletFrameDataset(Dataset):
         self.resize_width = 171
         self.crop_size = 112
 
+        self.cache = {}
+
     def __getitem__(self, index):
         # loading and preprocessing. TODO move them to transform classes
         tripletPath = self.triplets.iloc[index, :]
         triplets = []
         
         for path in tripletPath:
-            buffer = self.loadvideo('/content/'+path)
-            buffer = self.crop(buffer, self.clip_len, self.crop_size)
-            buffer = self.normalize(buffer)
+            buffer = None
+            if path not in self.cache:
+                buffer = self.loadvideo('/content/'+path)
+                buffer = self.crop(buffer, self.clip_len, self.crop_size)
+                buffer = self.normalize(buffer)
+                self.cache[path] = buffer
+            else: 
+                buffer = self.cache[path]
+
             triplets.append(buffer)
 
         return triplets 
@@ -62,7 +70,7 @@ class TripletFrameDataset(Dataset):
         
         frameDirPath = fname.split('.')[0]
         
-        frame_count = os.listdir(frameDirPath)
+        frame_count = sorted(os.listdir(frameDirPath))
         # create a buffer. Must have dtype float, so it gets converted to a FloatTensor by Pytorch later
         buffer = np.empty((len(frame_count), self.resize_height, self.resize_width, 3), np.dtype('uint8'))
 
@@ -157,12 +165,18 @@ class TripletVideoDataset(Dataset):
         triplets = []
         
         for path in tripletPath:
-            buffer = self.loadvideo('/content/'+path)
-            buffer = self.crop(buffer, self.clip_len, self.crop_size)
-            buffer = self.normalize(buffer)
+            buffer = None
+            if path not in self.cache:
+                buffer = self.loadvideo('/content/'+path)
+                buffer = self.crop(buffer, self.clip_len, self.crop_size)
+                buffer = self.normalize(buffer)
+                self.cache[path] = buffer
+            else: 
+                buffer = self.cache[path]
+                
             triplets.append(buffer)
 
-        return triplets 
+        return triplets
         
     def loadvideo(self, fname):
         # initialize a VideoCapture object to read video data into a numpy array
