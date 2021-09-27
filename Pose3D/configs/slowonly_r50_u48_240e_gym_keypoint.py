@@ -25,8 +25,8 @@ model = dict(
     test_cfg=dict(average_clips='prob'))
 
 dataset_type = 'PoseDataset'
-ann_file_train = 'data/posec3d/ntu120_xsub_train.pkl'
-ann_file_val = 'data/posec3d/ntu120_xsub_val.pkl'
+ann_file_train = 'data/posec3d/gym_train.pkl'
+ann_file_val = 'data/posec3d/gym_val.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = [
@@ -91,8 +91,6 @@ data = dict(
         type=dataset_type,
         ann_file=ann_file_train,
         data_prefix='',
-        class_prob={i: 1 + int(i >= 60)
-                    for i in range(120)},
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
@@ -117,14 +115,14 @@ workflow = [('train', 10)]
 evaluation = dict(
     interval=1,
     metrics=['top_k_accuracy', 'mean_class_accuracy'],
-    topk=(1, 2))
+    topk=(1, 5))
 log_config = dict(
     interval=1, hooks=[
         dict(type='TextLoggerHook'),
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/posec3d/slowonly_r50_u48_240e_ntu120_xsub_keypoint'
-load_from = 'https://download.openmmlab.com/mmaction/skeleton/posec3d/slowonly_r50_u48_240e_ntu120_xsub_keypoint/slowonly_r50_u48_240e_ntu120_xsub_keypoint-6736b03f.pth'
+work_dir = './work_dirs/posec3d/slowonly_r50_u48_240e_gym_keypoint'
+load_from = 'https://download.openmmlab.com/mmaction/skeleton/posec3d/slowonly_r50_u48_240e_gym_keypoint/slowonly_r50_u48_240e_gym_keypoint-b07a98a0.pth'
 resume_from = None
 find_unused_parameters = False

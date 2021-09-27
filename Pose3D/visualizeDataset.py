@@ -66,15 +66,15 @@ def parse_args():
 def main():
     args = parse_args()
 
-    with open(args.annotaion, 'rb') as f:
+    with open(args.annotation, 'rb') as f:
         annotations = pickle.load(f)
 
     sampleVideo = annotations[16]
 
     videoName = osp.join(args.src, sampleVideo['frame_dir'])
     frame_paths = sorted(os.listdir(videoName))
-    pose_results = sampleVideo['keypoints']
-    num_frame = sampleVideo['num_frame']
+    pose_results = sampleVideo['keypoint']
+    num_frame = sampleVideo['total_frames']
 
     pose_model = init_pose_model(args.pose_config, args.pose_checkpoint,
                                  args.device)
