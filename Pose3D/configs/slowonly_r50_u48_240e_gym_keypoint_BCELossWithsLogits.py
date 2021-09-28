@@ -17,8 +17,9 @@ model = dict(
         dilations=(1, 1, 1)),
     cls_head=dict(
         type='I3DHead',
+        loss_cls=dict(type='BCELossWithLogits'),
         in_channels=512,
-        num_classes=2,
+        num_classes=1,
         spatial_type='avg',
         dropout_ratio=0.5),
     train_cfg=dict(),
@@ -91,8 +92,6 @@ data = dict(
         type=dataset_type,
         ann_file=ann_file_train,
         data_prefix='',
-        class_prob={i: 1 + int(i >= 60)
-                    for i in range(120)},
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
@@ -106,7 +105,7 @@ data = dict(
         pipeline=test_pipeline))
 # optimizer
 optimizer = dict(
-    type='SGD', lr=0.001, momentum=0.9,
+    type='SGD', lr=0.0001, momentum=0.9,
     weight_decay=0.0003)  # this lr is used for 8 gpus
 optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
@@ -124,7 +123,7 @@ log_config = dict(
     ])
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/posec3d/slowonly_r50_u48_240e_ntu120_xsub_keypoint'
-load_from = 'https://download.openmmlab.com/mmaction/skeleton/posec3d/slowonly_r50_u48_240e_ntu120_xsub_keypoint/slowonly_r50_u48_240e_ntu120_xsub_keypoint-6736b03f.pth'
+work_dir = './work_dirs/posec3d/slowonly_r50_u48_240e_gym_keypoint'
+load_from = 'https://download.openmmlab.com/mmaction/skeleton/posec3d/slowonly_r50_u48_240e_gym_keypoint/slowonly_r50_u48_240e_gym_keypoint-b07a98a0.pth'
 resume_from = None
 find_unused_parameters = False

@@ -25,8 +25,8 @@ model = dict(
     test_cfg=dict(average_clips='prob'))
 
 dataset_type = 'PoseDataset'
-ann_file_train = 'data/posec3d/gym_train.pkl'
-ann_file_val = 'data/posec3d/gym_val.pkl'
+ann_file_train = '/content/drive/MyDrive/actionRecognitionAnnotation/Pose3D/train.pkl'
+ann_file_val = '/content/drive/MyDrive/actionRecognitionAnnotation/Pose3D/val.pkl'
 left_kp = [1, 3, 5, 7, 9, 11, 13, 15]
 right_kp = [2, 4, 6, 8, 10, 12, 14, 16]
 train_pipeline = [
@@ -110,12 +110,12 @@ optimizer_config = dict(grad_clip=dict(max_norm=40, norm_type=2))
 # learning policy
 lr_config = dict(policy='CosineAnnealing', by_epoch=False, min_lr=0)
 total_epochs = 240
-checkpoint_config = dict(interval=10)
+checkpoint_config = dict(interval=1)
 workflow = [('train', 10)]
 evaluation = dict(
     interval=1,
     metrics=['top_k_accuracy', 'mean_class_accuracy'],
-    topk=(1, 5))
+    topk=(1, 1))
 log_config = dict(
     interval=1, hooks=[
         dict(type='TextLoggerHook'),
