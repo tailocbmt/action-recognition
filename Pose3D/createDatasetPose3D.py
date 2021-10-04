@@ -110,33 +110,32 @@ def frame_extraction(src , annotationPath, short_side):
         os.makedirs(target_dir, exist_ok=True)
         # Should be able to handle videos up to several hours
         frame_tmpl = osp.join(target_dir, 'img_{:06d}.jpg')
-        # vid = cv2.VideoCapture(videoPath)
+        vid = cv2.VideoCapture(videoPath)
         
         video_paths.append(target_dir)
 
-        # flag, frame = vid.read()
-        # cnt = 0
-        # new_h, new_w = None, None
-        # while flag:
-        #     if new_h is None:
-        #         h, w, _ = frame.shape
-        #         new_w, new_h = mmcv.rescale_size((w, h), (short_side, np.Inf))
-        #     print(frame.shape)
+        flag, frame = vid.read()
+        cnt = 0
+        new_h, new_w = None, None
+        while flag:
+            if new_h is None:
+                h, w, _ = frame.shape
+                new_w, new_h = mmcv.rescale_size((w, h), (short_side, np.Inf))
             
-        #     frame = mmcv.imresize(frame, (new_w, new_h))
-        #     if (h < w):
-        #       frame = cv2.rotate(frame, cv2.cv2.ROTATE_90_CLOCKWISE)
-        #       new_h, new_w = new_w, new_h
+            frame = mmcv.imresize(frame, (new_w, new_h))
+            if (h < w):
+              frame = cv2.rotate(frame, cv2.cv2.ROTATE_90_CLOCKWISE)
+              new_h, new_w = new_w, new_h
 
-        #     frameHW = (new_h, new_w)
-        #     frame_path = frame_tmpl.format(cnt + 1)
+            frameHW = (new_h, new_w)
+            frame_path = frame_tmpl.format(cnt + 1)
             
             
-        #     cv2.imwrite(frame_path, frame)
-        #     cnt += 1
-        #     flag, frame = vid.read()
+            cv2.imwrite(frame_path, frame)
+            cnt += 1
+            flag, frame = vid.read()
 
-        # os.remove(videoPath)
+        os.remove(videoPath)
             
 
     return video_paths, (853, 480), videoLabels
