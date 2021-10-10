@@ -1,0 +1,25 @@
+
+A Dataset for a folder of videos. Expects the directory structure to be
+    directory->[train/test]->[class labels]->[videos]. Initializes with a list 
+    of all file names, along with an array of labels, with label being automatically
+    inferred from the respective folder names.   
+It is recommend to put your video to test/b and test/g folder with the correct label (b->bad,g->good)
+Foler structure: 
+action
+├── train
+├── test
+│   ├── b
+│   ├── g
+
+python interfere.py ${CHECKPOINT_DIR}
+Help:
+	CHECKPOINT_DIR: Directory of your checkpoint file	
+
+action-recognition
+├── Pose3D
+├── R2plus1D
+│   ├── action
+│   │  	├── train
+│   │   ├── test  
+│   ├── dataset.py
+│   ├── interfere.py
