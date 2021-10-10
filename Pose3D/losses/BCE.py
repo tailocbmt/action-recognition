@@ -8,5 +8,7 @@ from .base import BaseWeightedLoss
 class BCELoss(nn.Module):
 
     def forward(self, pred, target):
-        loss = nn.BCELoss(pred, target)
+        loss_func = nn.BCELoss()
+        target = torch.unsqueeze(target,dim=-1).float()
+        loss = loss_func(pred, target)
         return loss
