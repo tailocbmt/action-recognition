@@ -27,7 +27,8 @@ class CustomDataModule(data.Dataset):
                 img_path: str='',
                 kp_annotation: str='', 
                 sample_duration: int=16,
-                mode: str='train'):
+                mode: str='train',
+                **kwargs):
         super(CustomDataModule).__init__()
         self.img_path = img_path
         with open(kp_annotation, 'rb') as f:
