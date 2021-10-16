@@ -111,7 +111,7 @@ class ResNet3DLSTM(VideoClassificationLightningModule):
             hidden_dim: int=256,
             lstm_dim: int=1, 
             sigmoid: bool=False,
-            backbone='r2plus1d_r50',
+            backbone='slow_r50',
             dropout: float=0.5,
             freeze_backbone: bool=False, 
             pretrained: bool=True, 
@@ -130,7 +130,7 @@ class ResNet3DLSTM(VideoClassificationLightningModule):
     def _build_model(self):
         # The pretrained resnet model - we strip off its head to get the backbone.
         resnet = torch.hub.load(
-            "facebookresearch/pytorchvideo",
+            "facebookresearch/pytorchvideo:main",
             self.hparams.backbone,
             pretrained=self.hparams.pretrained,
         )
@@ -142,24 +142,24 @@ class ResNet3DLSTM(VideoClassificationLightningModule):
                 param.requires_grad = False
 
         # Create a new head we will train on top of the backbone.
-        self.clshead = create_res_basic_head(
-            in_features=1024, out_features=self.hparams.num_classes,
-            dropout_rate=0, output_with_global_average=True
-        )
+        self.pool = nn.AdaptiveAvgPool3d((1, 1, 1))
+        self.conv_out = nn.Linear(in_features=2048, out_features=self.hparams.hidden_dim)
+
         if self.hparams.hidden_dim > 0:
-            self.lstm = nn.LSTM(self.hparams.num_subclip, self.hparams.hidden_dim, num_layer=3 ,dropout=self.hparams.dropout)
-            self.hidden1 = nn.Linear(self.hparams.hidden_dim, self.hparams.hidden_dim/2)
+            self.lstm = nn.LSTM(input_size=self.hparams.num_subclip, hidden_size=self.hparams.hidden_dim, num_layers=3, dropout=self.hparams.dropout)
+            self.hidden1 = nn.Linear(self.hparams.hidden_dim, self.hparams.hidden_dim//2)
         if self.hparams.sigmoid:
-            self.hidden2 = nn.Linear(self.hparams.hidden_dim/2, 1)
+            self.hidden2 = nn.Linear(self.hparams.hidden_dim//2, 1)
 
     def forward(self, x: torch.Tensor):
         x = self.backbone(x)
-        x = self.clshead(x)
+        x = self.pool(x)
+        x = x.view(x.shape[0],-1)
+        x = self.conv_out(x)
         if self.hparams.hidden_dim > 0:
-            x = self.lstm(x)
+            x,_ = self.lstm(x)
             x = self.hidden1(x)
         if self.hparams.sigmoid:
             x = self.hidden2(x)
             x = F.log_softmax(x, dim=1)
-            
         return x

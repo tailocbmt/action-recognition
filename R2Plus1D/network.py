@@ -112,7 +112,7 @@ class R2Plus1DNet(nn.Module):
         self.conv5 = SpatioTemporalResLayer(256, 512, 3, layer_sizes[3], block_type=block_type, downsample=True)
 
         # global average pooling of the output
-        self.pool = nn.AdaptiveAvgPool3d(1)
+        self.pool = nn.AdaptiveAvgPool3d()
     
     def forward(self, x):
         x = self.conv1(x)
