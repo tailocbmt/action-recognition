@@ -17,7 +17,7 @@ from models.models import CNN3DLSTM
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("Device being used:", device)
 
-def train_model(csvPath,num_classes=512, mode='train', num_epochs=45, save=True,batch_size=1, sample_duration=8, path="checkpoints/epoch_23.pth.tar",saveLog='log.csv'):
+def train_model(csvPath, kp_annotation,num_classes=512, mode='train', num_epochs=45, save=True,batch_size=1, sample_duration=8, path="checkpoints/epoch_23.pth.tar",saveLog='log.csv'):
     
     model = CNN3DLSTM(pretrained=True,
                     hidden_dim=num_classes,
@@ -29,17 +29,17 @@ def train_model(csvPath,num_classes=512, mode='train', num_epochs=45, save=True,
     
     log_file = []
     if mode == 'train':
-        train_dataloader = DataLoader(CustomDataModule(csv_path=csvPath, sample_duration=sample_duration),
+        train_dataloader = DataLoader(CustomDataModule(csv_path=csvPath,kp_annotation=kp_annotation, sample_duration=sample_duration),
                                     batch_size=batch_size, 
                                     shuffle=True, 
                                     num_workers=4)
 
-        val_dataloader = DataLoader(CustomDataModule(csv_path=csvPath, sample_duration=sample_duration, mode='val'), 
+        val_dataloader = DataLoader(CustomDataModule(csv_path=csvPath,kp_annotation=kp_annotation, sample_duration=sample_duration, mode='val'), 
                                     batch_size=batch_size, 
                                     shuffle=False,
                                     num_workers=4)
         
-        test_dataloader = DataLoader(CustomDataModule(csv_path=csvPath, sample_duration=sample_duration, mode='val'), 
+        test_dataloader = DataLoader(CustomDataModule(csv_path=csvPath,kp_annotation=kp_annotation, sample_duration=sample_duration, mode='test'), 
                                     batch_size=batch_size, 
                                     shuffle=False,
                                     num_workers=4)
@@ -125,7 +125,7 @@ def train_model(csvPath,num_classes=512, mode='train', num_epochs=45, save=True,
         # print the total time needed, HH:MM:SS format
 
         pd.DataFrame(log_file, columns=['train', 'val', 'test']).to_csv(saveLog, index=False)
-        
+
         time_elapsed = time.time() - start
         print('\n')
         print(f"Training complete in {time_elapsed//3600}h {(time_elapsed%3600)//60}m {time_elapsed %60}s")
@@ -158,7 +158,8 @@ if __name__=="__main__":
     parser.add_argument("numClasses", type=int)
     parser.add_argument("epoch", type=int,default=50)
     parser.add_argument("csvPath", type=str)
+    parser.add_argument("kp_annotation", type=str)
     parser.add_argument("savePath", type=str, default="model_data.pth.tar")
     parser.add_argument("mode", type=str, default='train')
     args = parser.parse_args()
-    train_model(num_classes=args.numClasses, csvPath=args.csvPath, num_epochs=args.epoch, path=args.savePath, mode=args.mode)
+    train_model(num_classes=args.numClasses, csvPath=args.csvPath, kp_annotation=args.kp_annotation, num_epochs=args.epoch, path=args.savePath, mode=args.mode)

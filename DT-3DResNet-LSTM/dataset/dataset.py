@@ -18,8 +18,8 @@ from pytorchvideo.transforms import (
     ShortSideScale,
 )
 
-from temporal_transforms import TemporalSequenceCrop
-from pose_transforms import PoseDecode, GeneratePoseTarget
+from .temporal_transforms import TemporalSequenceCrop
+from .pose_transforms import PoseDecode, GeneratePoseTarget
 
 class CustomDataModule(data.Dataset):
     def __init__(self, 
