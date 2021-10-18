@@ -55,13 +55,14 @@ class LSTMHead(BaseHead):
         x = torch.squeeze(x)
         print(x.shape)
         x = x.permute(0, 2, 1)
+
         x, _ = self.lstm(x) 
 
-        if self.dropout is not None:
-            x = self.dropout(x)
         print(x.shape)
         x = x.view(x.shape[0], -1)
 
+        if self.dropout is not None:
+            x = self.dropout(x)
         cls_score = self.fc_cls(x)
         
         return cls_score
