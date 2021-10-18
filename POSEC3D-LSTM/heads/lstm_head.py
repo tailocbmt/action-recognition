@@ -30,9 +30,11 @@ class LSTMHead(BaseHead):
         
         if self.spatial_type == 'avg':
             # use `nn.AdaptiveAvgPool3d` to adaptively match the in_channels.
-            self.avg_pool = nn.AdaptiveAvgPool3d((None, 1, 1))
+            self.avg_pool3d = nn.AdaptiveAvgPool3d((None, 1, 1))
+            self.avg_pool2d = nn.AdaptiveAvgPool2d((1, None))
         else:
-            self.avg_pool = None
+            self.avg_pool3d = None
+            self.avg_pool2d = None
 
         self.lstm = nn.LSTM(input_size=self.in_channels, hidden_size=self.in_channels//2, num_layers=3, dropout=self.dropout_ratio, batch_first=True)
         self.fc_cls = nn.Linear(self.in_channels//2, self.in_channels//4)
@@ -48,19 +50,17 @@ class LSTMHead(BaseHead):
         Returns:
             torch.Tensor: The classification scores for input samples.
         """
-        print(x.shape) 
-        if self.avg_pool is not None:
-            x = self.avg_pool(x)
-        print(x.shape)        
+        if self.avg_pool3d is not None:
+            x = self.avg_pool3d(x)
         x = torch.squeeze(x)
-        print(x.shape)
         x = x.permute(0, 2, 1)
 
         x, _ = self.lstm(x) 
 
-        print(x.shape)
-        x = x.view(x.shape[0], -1)
-
+        if self.avg_pool2d is not None:
+            x = self.avg_pool2d(x)
+            x = torch.squeeze(x)
+            
         if self.dropout is not None:
             x = self.dropout(x)
         cls_score = self.fc_cls(x)
