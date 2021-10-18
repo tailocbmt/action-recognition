@@ -33,7 +33,7 @@ class LSTMHead(BaseHead):
         else:
             self.avg_pool = None
 
-        self.lstm = nn.LSTM(input_size=self.num_clip, hidden_size=self.in_channels, num_layers=3, dropout=self.dropout_ratio)
+        self.lstm = nn.LSTM(input_size=self.clip_len, hidden_size=self.in_channels, num_layers=3, dropout=self.dropout_ratio)
         self.fc_cls = nn.Linear(self.in_channels, self.in_channels//2)
 
     def init_weights(self):
