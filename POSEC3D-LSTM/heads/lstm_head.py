@@ -15,7 +15,7 @@ class LSTMHead(BaseHead):
                  spatial_type='avg',
                  dropout_ratio=0.2,
                  init_std=0.01,
-                 clip_len: int=32,
+                 clip_len: int=24,
                  **kwargs):
         super().__init__(num_classes, in_channels, loss_cls, **kwargs)
 
@@ -54,11 +54,8 @@ class LSTMHead(BaseHead):
         print(x.shape)        
         x = torch.squeeze(x)
         print(x.shape)
-        x = x.permute(0, 2, 1)
 
-        print(x.shape)
-        
-        out, _ = self.lstm(x) 
+        x, _ = self.lstm(x) 
 
         if self.dropout is not None:
             x = self.dropout(x)

@@ -12,12 +12,9 @@ class RecognizerNoLoss(BaseRecognizer):
 
     def forward_train(self, imgs, labels, **kwargs):
         """Defines the computation performed at every call when training."""
-        print(imgs.shape)
         assert self.with_cls_head
         imgs = imgs.reshape((-1, ) + imgs.shape[2:])
-        print(imgs.shape)
         x = self.extract_feat(imgs)
-        print(x.shape)
         if self.with_neck:
             x, _ = self.neck(x, labels)
 
