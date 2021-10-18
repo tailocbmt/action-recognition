@@ -34,8 +34,8 @@ class LSTMHead(BaseHead):
         else:
             self.avg_pool = None
 
-        self.lstm = nn.LSTM(input_size=self.clip_len, hidden_size=self.in_channels, num_layers=3, dropout=self.dropout_ratio, batch_first=True)
-        self.fc_cls = nn.Linear(self.in_channels, self.in_channels//2)
+        self.lstm = nn.LSTM(input_size=self.in_channels, hidden_size=self.in_channels//2, num_layers=3, dropout=self.dropout_ratio, batch_first=True)
+        self.fc_cls = nn.Linear(self.in_channels//2, self.in_channels//4)
 
     def init_weights(self):
         """Initiate the parameters from scratch."""
@@ -54,7 +54,7 @@ class LSTMHead(BaseHead):
         print(x.shape)        
         x = torch.squeeze(x)
         print(x.shape)
-
+        x = x.permute(0, 2, 1)
         x, _ = self.lstm(x) 
 
         if self.dropout is not None:
