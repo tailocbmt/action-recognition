@@ -84,7 +84,8 @@ class CustomDataModule(data.Dataset):
         for i in range(len(self.kp_annotation)):
             if self.kp_annotation[i]['frame_dir'] == frameDirPath:
                 buffer = self.pose_decode(self.kp_annotation[i])
-
+                buffer = self.generate_pose(buffer)
+                
                 return buffer   
 
         
@@ -100,9 +101,11 @@ class CustomDataModule(data.Dataset):
             else: 
                 buffer = self.cache[path]
                 buffer = self.temporal_transform(buffer, index)
-                buffer = self.crop(buffer, index)
                 buffer = self.transform(buffer)
                 
             triplets.append(buffer)
 
         return triplets
+
+    def __len__(self):
+        return len(self.triplets)
