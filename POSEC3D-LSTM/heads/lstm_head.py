@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from mmcv.cnn import normal_init
 
@@ -33,7 +34,7 @@ class LSTMHead(BaseHead):
         else:
             self.avg_pool = None
 
-        self.lstm = nn.LSTM(input_size=self.clip_len, hidden_size=self.in_channels, num_layers=3, dropout=self.dropout_ratio)
+        self.lstm = nn.LSTM(input_size=self.clip_len, hidden_size=self.in_channels, num_layers=3, dropout=self.dropout_ratio, batch_first=True)
         self.fc_cls = nn.Linear(self.in_channels, self.in_channels//2)
 
     def init_weights(self):
@@ -47,20 +48,21 @@ class LSTMHead(BaseHead):
         Returns:
             torch.Tensor: The classification scores for input samples.
         """
-        print(x.shape)
-        hidden = None
-        for t in range(x.size(1)):
-            loop = x[:, t, :, :, :]  
-            out, hidden = self.lstm(loop.unsqueeze(0), hidden) 
-
         if self.avg_pool is not None:
             x = self.avg_pool(x)
+        print(x.shape)        
+        x = torch.squeeze(x)
+        x = x.permute(0, 2, 1)
+
+        print(x.shape)
         
+        out, _ = self.lstm(x) 
+
         if self.dropout is not None:
             x = self.dropout(x)
-        
+        print(x.shape)
         x = x.view(x.shape[0], -1)
-        
+
         cls_score = self.fc_cls(x)
         
         return cls_score
