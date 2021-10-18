@@ -47,7 +47,7 @@ class LSTMHead(BaseHead):
         Returns:
             torch.Tensor: The classification scores for input samples.
         """
-        
+        print(x.shape)
         hidden = None
         for t in range(x.size(1)):
             loop = x[:, t, :, :, :]  

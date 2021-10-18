@@ -1,5 +1,5 @@
 model = dict(
-    type='Recognizer3D',
+    type='RecognizerNoLoss',
     backbone=dict(
         type='ResNet3dSlowOnly',
         depth=50,
