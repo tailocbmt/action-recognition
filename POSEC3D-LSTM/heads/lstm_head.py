@@ -14,13 +14,14 @@ class LSTMHead(BaseHead):
                  spatial_type='avg',
                  dropout_ratio=0.2,
                  init_std=0.01,
+                 clip_len: int=32,
                  **kwargs):
         super().__init__(num_classes, in_channels, loss_cls, **kwargs)
 
         self.spatial_type = spatial_type
         self.dropout_ratio = dropout_ratio
         self.init_std = init_std
-        self.hidden_dim = 512
+        self.clip_len = clip_len
         if self.dropout_ratio != 0:
             self.dropout = nn.Dropout(p=self.dropout_ratio)
         else:
