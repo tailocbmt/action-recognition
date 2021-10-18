@@ -30,7 +30,7 @@ class LSTMHead(BaseHead):
         
         if self.spatial_type == 'avg':
             # use `nn.AdaptiveAvgPool3d` to adaptively match the in_channels.
-            self.avg_pool = nn.AdaptiveAvgPool3d((1, 1, 1))
+            self.avg_pool = nn.AdaptiveAvgPool3d((None, 1, 1))
         else:
             self.avg_pool = None
 
@@ -48,10 +48,12 @@ class LSTMHead(BaseHead):
         Returns:
             torch.Tensor: The classification scores for input samples.
         """
+        print(x.shape) 
         if self.avg_pool is not None:
             x = self.avg_pool(x)
         print(x.shape)        
         x = torch.squeeze(x)
+        print(x.shape)
         x = x.permute(0, 2, 1)
 
         print(x.shape)
