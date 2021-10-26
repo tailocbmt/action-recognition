@@ -45,6 +45,10 @@ def parse_args():
                         default='action-recognition\src\R2Plus1D-PyTorch\POSEC3D-LSTM\log.csv',
                         help="Path to the csv log file")
     
+    parser.add_argument('--checkpoint', 
+                    default='',
+                    help='Path to the checkpoint')    
+
     parser.add_argument("--embedPath", 
                         default='embeddings',
                         help="Path to the saved dataset embedding")

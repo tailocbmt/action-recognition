@@ -1,7 +1,9 @@
+import os
 from mmaction.models import build_model
 from mmcv.runner import load_checkpoint
 
 def modelFromConfig(cfg,
+                    checkpoint: str='',
                     pretrained: bool=True,
                     device: str='cuda'):
     """
@@ -15,8 +17,11 @@ def modelFromConfig(cfg,
     """
     model = build_model(cfg=cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
     model = build_model(cfg=cfg.model, train_cfg=cfg.get('train_cfg'), test_cfg=cfg.get('test_cfg'))
-    if cfg.load_from is not None and pretrained:
-        load_checkpoint(model, cfg.load_from, map_location='cuda')
+    if os.path.exists(checkpoint):
+        model = model.load_state_dict(checkpoint['state_dict'])
+    else:
+        if cfg.load_from is not None and pretrained:
+            load_checkpoint(model, cfg.load_from, map_location='cuda')
     
     model = model.to(device)
     print(model)

@@ -9,7 +9,7 @@ from utils.mics import parse_args, PoseC3DTransform, createKNN
 def main(args):
     cfg = Config.fromfile(args.cfgPath)
     # Build model
-    model = modelFromConfig(cfg=cfg, device=args.device)
+    model = modelFromConfig(cfg=cfg, checkpoint=args.checkpoint, device=args.device)
     model.eval()
     # Read file contains path
     pathFile = pd.read_csv(args.txtPath, names=['filename', 'label', 'status'], header=None)
