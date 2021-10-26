@@ -27,7 +27,7 @@ def train_model(csvPath, kp_annotation,num_classes=512, mode='train', num_epochs
     optimizer = optim.SGD(model.parameters(), lr=0.001)  # hyperparameters as given in paper sec 4.1
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  # the scheduler divides the lr by 10 every 10 epochs
     
-    log_file = []
+        
     if mode == 'train':
         train_dataloader = DataLoader(CustomDataModule(csv_path=csvPath,kp_annotation=kp_annotation, sample_duration=sample_duration),
                                     batch_size=batch_size, 

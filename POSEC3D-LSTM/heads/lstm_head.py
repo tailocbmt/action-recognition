@@ -53,6 +53,8 @@ class LSTMHead(BaseHead):
         if self.avg_pool3d is not None:
             x = self.avg_pool3d(x)
         x = torch.squeeze(x)
+        if len(x.shape)==2:
+            x = torch.unsqueeze(x, dim=0)
         x = x.permute(0, 2, 1)
 
         x, _ = self.lstm(x) 
