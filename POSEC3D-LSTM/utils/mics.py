@@ -5,6 +5,7 @@ import pickle
 import numpy as np
 import os.path as osp
 
+from mmcv import DictAction
 from torch.autograd import Variable
 from sklearn.neighbors import NearestNeighbors
 from mmaction.datasets.pipelines import Compose
@@ -27,7 +28,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cfgPath", 
                         default='',
-                        help="Config path")
+                        help="posec3d config file path")
 
     parser.add_argument("--csvPath", 
                         default='',
@@ -77,17 +78,73 @@ def parse_args():
                     type=int,
                     help='Top K nearest embedding')                    
 
+    ####################################
+    # Long demo
+    parser.add_argument('video', help='video file/url', default='')
+    
+    parser.add_argument('outFilename', help='output filename', default='')
+
+    parser.add_argument(
+        '--det-config',
+        default='demo/faster_rcnn_r50_fpn_2x_coco.py',
+        help='human detection config file path (from mmdet)')
+
+    parser.add_argument(
+        '--det-checkpoint',
+        default=('http://download.openmmlab.com/mmdetection/v2.0/faster_rcnn/'
+                 'faster_rcnn_r50_fpn_2x_coco/'
+                 'faster_rcnn_r50_fpn_2x_coco_'
+                 'bbox_mAP-0.384_20200504_210434-a5d8aa15.pth'),
+        help='human detection checkpoint file/url')
+
+    parser.add_argument(
+        '--pose-config',
+        default='demo/hrnet_w32_coco_256x192.py',
+        help='human pose estimation config file path (from mmpose)')
+
+    parser.add_argument(
+        '--pose-checkpoint',
+        default=('https://download.openmmlab.com/mmpose/top_down/hrnet/'
+                 'hrnet_w32_coco_256x192-c78dce93_20200708.pth'),
+        help='human pose estimation checkpoint file/url')
+
+    parser.add_argument(
+        '--det-score-thr',
+        type=float,
+        default=0.9,
+        help='the threshold of human detection score')
+
+    parser.add_argument(
+        '--short-side',
+        type=int,
+        default=480,
+        help='specify the short-side length of the image')
+    
+    parser.add_argument(
+        '--clip-len',
+        type=int,
+        default=48,
+        help='specify the clip length of video')
+
+    parser.add_argument(
+        '--cfg-options',
+        nargs='+',
+        action=DictAction,
+        default={},
+        help='override some settings in the used config, the key-value pair '
+        'in xxx=yyy format will be merged into config file. For example, '
+        "'--cfg-options model.backbone.depth=18 model.backbone.with_cp=True'")
     return parser.parse_args()
 
 class PoseC3DTransform:
     def __init__(self,
                 cfg,
-                kp_annotation: str='',
                 sample_duration: int=48,
                 mode: str='test',
                 num_clips: int=1,
                 start_index: int=1,
                 modality: str='RGB',
+                input_flag: str='video',
                 seed: int=-1,
                 ram: bool=True,
                 ):
@@ -97,13 +154,13 @@ class PoseC3DTransform:
         self.num_clips = num_clips
         self.start_index = start_index
         self.modality = modality
+        self.input_flag = input_flag
         self.seed = seed
         if ram:
             self.cache = {}
 
         self._getPipeline()
-        with open(kp_annotation, 'rb') as f:
-            self.kp_annotation = pickle.load(f)
+        
 
     def _getPipeline(self):
         pipelines = (self.cfg.data.train.pipeline if self.mode=='train' else self.cfg.data.test.pipeline)[1:-3]
@@ -112,6 +169,8 @@ class PoseC3DTransform:
     def _toTensor(self, buffer):
         buffer = np.transpose(buffer, (3, 0, 1, 2))
         buffer = np.expand_dims(buffer, axis=0)
+        if len(buffer.shape) == 5:
+            buffer = np.expand_dims(buffer, axis=0)
         return torch.from_numpy(buffer)
 
     def _sample(self, buffer):
@@ -119,28 +178,29 @@ class PoseC3DTransform:
         buffer = buffer[ind: ind+self.sample_duration, :, :,:]
         return buffer
 
-    def _load_video(self, path):
-        frameDirPath = osp.join('/content',path.split('.')[0])
-        for i in range(len(self.kp_annotation)):
-            if self.kp_annotation[i]['frame_dir'] == frameDirPath:
-                buffer = copy.deepcopy(self.kp_annotation[i])
-                buffer['num_clips'] = self.num_clips
-                buffer['clip_len'] = self.sample_duration * (buffer['total_frames'] // self.sample_duration)
-                buffer['modality'] = self.modality
-                buffer['start_index'] = self.start_index
-                return buffer
+    def _load_video(self, video):
+        buffer = copy.deepcopy(video)
+        if 'num_clips' in buffer:
+            buffer['num_clips'] = self.num_clips
+        if 'clip_len' in buffer:
+            buffer['clip_len'] = self.sample_duration * (buffer['total_frames'] // self.sample_duration)
+        if 'modality' in buffer:
+            buffer['modality'] = self.modality
+        if 'start_index' in buffer:
+            buffer['start_index'] = self.start_index
 
-    def _load_if_no_kp():
-        pass
+        return buffer
 
-    def __call__(self, path):
-        if not self.cache or path in self.cache:
-            buffer = self.cache[path]
-        else:
-            buffer = self._load_video(path)
+    def __call__(self, video):
+
+        if not self.cache or video not in self.cache:
+            buffer = self._load_video(video)
             buffer = self._preprocess(buffer)['imgs']
             buffer = self._sample(buffer)
             buffer = self._toTensor(buffer)
+            self.cache[video] = buffer
+        else:
+            buffer = self.cache[video]
         
         return buffer
 

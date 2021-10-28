@@ -10,10 +10,10 @@ from .base import BaseHead
 class LSTMHead(BaseHead):
     def __init__(self,
                  num_classes,
-                 in_channels=512,
+                 in_channels=256,
                  loss_cls=dict(type='CrossEntropyLoss'),
                  spatial_type='avg',
-                 dropout_ratio=0.2,
+                 dropout_ratio=0.5,
                  init_std=0.01,
                  clip_len: int=24,
                  **kwargs):
@@ -37,7 +37,7 @@ class LSTMHead(BaseHead):
             self.avg_pool2d = None
 
         self.lstm = nn.LSTM(input_size=self.in_channels, hidden_size=self.in_channels//2, num_layers=3, dropout=self.dropout_ratio, batch_first=True)
-        self.fc_cls = nn.Linear(self.in_channels//2, self.in_channels//4)
+        self.fc_cls = nn.Linear(clip_len*(self.in_channels//2), self.in_channels)
 
     def init_weights(self):
         """Initiate the parameters from scratch."""
@@ -50,21 +50,19 @@ class LSTMHead(BaseHead):
         Returns:
             torch.Tensor: The classification scores for input samples.
         """
+        
         if self.avg_pool3d is not None:
-            x = self.avg_pool3d(x)
-        x = torch.squeeze(x)
-        if len(x.shape)==2:
-            x = torch.unsqueeze(x, dim=0)
+            x = self.avg_pool3d(x) 
+        
+        x = x.view(x.shape[0], x.shape[1], x.shape[2])
         x = x.permute(0, 2, 1)
 
         x, _ = self.lstm(x) 
-
         if self.avg_pool2d is not None:
             x = self.avg_pool2d(x)
-            x = torch.squeeze(x)
-            
-        if self.dropout is not None:
-            x = self.dropout(x)
-        cls_score = self.fc_cls(x)
+
+        x = x.view(x.shape[0], -1)
+#         if self.dropout is not None:
+#             x = self.dropout(x)
         
-        return cls_score
+        return x
