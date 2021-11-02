@@ -8,10 +8,10 @@ import mmcv
 import pandas as pd
 import numpy as np
 import torch
-from utils.mics import parse_args
-from utils.models import modelFromConfig, PoseC3DTransform, createKNN
+from utils.mics import parse_args, PoseC3DTransform, createKNN
+from utils.models import modelFromConfig
 
-from mmaction.apis import inference_recognizer, init_recognizer
+from mmaction.apis import init_recognizer
 from mmaction.utils import import_module_error_func
 
 try:
@@ -48,7 +48,7 @@ except ImportError:
 
 FONTFACE = cv2.FONT_HERSHEY_DUPLEX
 FONTSCALE = 0.75
-FONTCOLOR = (255, 255, 255)  # BGR, white
+FONTCOLOR = (255, 0, 0)  # BGR, white
 THICKNESS = 1
 LINETYPE = 1
 
@@ -125,25 +125,26 @@ def pose_inference(args, frame_paths, det_results):
 def action_inference(args, config, pose_results, shape):
     # Preprocess data function
     loader = PoseC3DTransform(cfg=config, 
-                        seed=255)
+                        seed=255,
+                        ram=False)
 
     # Load PoseC3D model
     model = modelFromConfig(cfg=config, checkpoint=args.checkpoint, device=args.device)
     model.eval()
 
     # Load embeddings
-    if not args.embedPath.endswith('.npy'):
-        embedPath = args.embedPath + '.npy'
-    embeddings = np.load(embedPath)
+    if not args.embed_path.endswith('.npy'):
+        embed_path = args.embed_path + '.npy'
+    embeddings = np.load(embed_path)
 
     # Load K Nearest Neighbors model
     knnModel = createKNN(embeddings, 30)
 
     # Create class mapping
-    pathFile = pd.read_csv(args.txtPath, names=['filename', 'label', 'status'], header=None)
+    pathFile = pd.read_csv(args.txt_path, names=['filename', 'label', 'status'], header=None)
     pathFile = pathFile.replace(r'\\','/', regex=True)
     id2class = dict(
-        zip(pathFile.index.tolist(), int(pathFile['label'].tolist())) 
+        zip(pathFile.index.tolist(), pathFile['label'].tolist()) 
     )
     # Create fake annotation for model input
     h, w, _ = shape
@@ -156,16 +157,24 @@ def action_inference(args, config, pose_results, shape):
     keypoint_score = np.zeros((num_person, args.clip_len, num_keypoint),
                               dtype=np.float16)
     
-    print(pose_results)
-    print(pose_results.shape)
+    
     count = 0
-    video_classes = deque()
+    video_classes = []
+    
     for i, poses in enumerate(pose_results):
         for j, pose in enumerate(poses):
             pose = pose['keypoints']
-            keypoint[j, i] = pose[:, :2]
-            keypoint_score[j, i] = pose[:, 2]
+            keypoint[j, count] = pose[:, :2]
+            keypoint_score[j, count] = pose[:, 2]
         count+=1    
+        
+        if (i+1) % len(pose_results) == 0 and count < args.clip_len:
+            while count < args.clip_len:
+                for j, pose in enumerate(poses):
+                    pose = pose['keypoints']
+                    keypoint[j, count] = pose[:, :2]
+                    keypoint_score[j, count] = pose[:, 2]
+                count+=1
 
         if count == args.clip_len:
             fake_anno = dict(
@@ -187,12 +196,15 @@ def action_inference(args, config, pose_results, shape):
             video = loader(fake_anno)
             video = video.to(args.device)
             pred = model(video, -1)
-            _, ids = knnModel.kneighbors(pred.to('cpu').numpy(), 1)
-            
-            classes = [id2class[id] for id in ids]
-            average_class = sum(classes) / len(classes)
+            _, ids = knnModel.kneighbors(pred.to('cpu').detach().numpy(), args.top)
+
+            classes = [id2class[id] for id in ids[0]]
+
+            average_class = classes[0]
             video_classes.append(average_class)
             count = 0
+    
+    return video_classes
 
 
 
@@ -203,16 +215,11 @@ def main():
     frame_paths, original_frames = frame_extraction(args.video,
                                                     args.short_side)
     num_frame = len(frame_paths)
-    h, w, _ = original_frames[0].shape
 
     # Get clip_len, frame_interval and calculate center index of each clip
-    config = mmcv.Config.fromfile(args.config)
+    config = mmcv.Config.fromfile(args.cfgPath)
     config.merge_from_dict(args.cfg_options)
 
-    model = init_recognizer(config, args.checkpoint, args.device)
-
-    # Load label_map
-    label_map = [x.strip() for x in open(args.label_map).readlines()]
 
     # Get Human detection results
     det_results = detection_inference(args, frame_paths)
@@ -223,7 +230,7 @@ def main():
 
 
     results = action_inference(args, config, pose_results, original_frames[0].shape)
-
+    
     action_label = [value for value in results for _ in range(args.clip_len)]
 
     pose_model = init_pose_model(args.pose_config, args.pose_checkpoint,
@@ -233,13 +240,11 @@ def main():
         for i in range(num_frame)
     ]
     for i in range(len(vis_frames)):
-        if not action_label[i]:
-            action_label[i] = action_label[i] - 1
-        cv2.putText(vis_frames[i], action_label[i], (10, 30), FONTFACE, FONTSCALE,
+        cv2.putText(vis_frames[i], ('1' if action_label[i] > 0.5 else '0'), (10, 30), FONTFACE, FONTSCALE,
                     FONTCOLOR, THICKNESS, LINETYPE)
 
     vid = mpy.ImageSequenceClip([x[:, :, ::-1] for x in vis_frames], fps=24)
-    vid.write_videofile(args.out_filename, remove_temp=True)
+    vid.write_videofile(args.outFilename, remove_temp=True)
 
     tmp_frame_dir = osp.dirname(frame_paths[0])
     shutil.rmtree(tmp_frame_dir)

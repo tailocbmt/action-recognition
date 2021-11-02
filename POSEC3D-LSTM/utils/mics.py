@@ -26,23 +26,23 @@ def createKNN(arr, k):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--cfgPath", 
+    parser.add_argument("--cfg-path", 
                         default='',
                         help="posec3d config file path")
 
-    parser.add_argument("--csvPath", 
+    parser.add_argument("--csv-path", 
                         default='',
                         help="Csv path")
 
-    parser.add_argument("--kpAnnotation", 
+    parser.add_argument("--kp-annotation", 
                         default='',
                         help="Annotation path contains keypoints")
 
-    parser.add_argument("--txtPath", 
+    parser.add_argument("--txt-path", 
                         default='',
                         help="txt path to store video path(Used when run inference)")
 
-    parser.add_argument("--logPath", 
+    parser.add_argument("--log-path", 
                         default='action-recognition\src\R2Plus1D-PyTorch\POSEC3D-LSTM\log.csv',
                         help="Path to the csv log file")
     
@@ -50,14 +50,10 @@ def parse_args():
                     default='',
                     help='Path to the checkpoint')    
 
-    parser.add_argument("--embedPath", 
+    parser.add_argument("--embed-path", 
                         default='embeddings',
                         help="Path to the saved dataset embedding")
 
-    parser.add_argument("--batch", 
-                        default=8,
-                        type=int,
-                        help="Batch size (default: 8)")
 
     parser.add_argument("--device", 
                         default='cuda',
@@ -80,9 +76,9 @@ def parse_args():
 
     ####################################
     # Long demo
-    parser.add_argument('video', help='video file/url', default='')
+    parser.add_argument('--video', help='video file/url', default='')
     
-    parser.add_argument('outFilename', help='output filename', default='')
+    parser.add_argument('--out-filename', help='output filename', default='')
 
     parser.add_argument(
         '--det-config',
@@ -134,6 +130,37 @@ def parse_args():
         help='override some settings in the used config, the key-value pair '
         'in xxx=yyy format will be merged into config file. For example, '
         "'--cfg-options model.backbone.depth=18 model.backbone.with_cp=True'")
+    
+    # Training config 
+    parser.add_argument(
+        '--batch-size',
+        type=int,
+        default=8,
+        help='Batch size of training')
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=50,
+        help='Number of epochs')
+    parser.add_argument(
+        '--log',
+        default='',
+        help='Path to the log file')
+    # Learing rate
+    parser.add_argument(
+        '--lr',
+        type=float,
+        default=0.001,
+        help='Learning rate of optimizer')
+    parser.add_argument(
+        '--gamma',
+        type=float,
+        default=0.05,
+        help='percent reduce of learning rate per 10 epoch')
+    parser.add_argument(
+    '--checkpoint-dir',
+    default='',
+    help='Checkpoint dir to store training checkpoint')
     return parser.parse_args()
 
 class PoseC3DTransform:
@@ -141,6 +168,7 @@ class PoseC3DTransform:
                 cfg,
                 sample_duration: int=48,
                 mode: str='test',
+                sample_mode: str='sequence',
                 num_clips: int=1,
                 start_index: int=1,
                 modality: str='RGB',
@@ -151,19 +179,24 @@ class PoseC3DTransform:
         self.cfg = cfg
         self.mode = mode
         self.sample_duration = sample_duration
+        self.sample_mode = sample_mode
         self.num_clips = num_clips
         self.start_index = start_index
         self.modality = modality
         self.input_flag = input_flag
         self.seed = seed
-        if ram:
+        self.ram = ram
+        if self.ram:
             self.cache = {}
 
         self._getPipeline()
         
 
     def _getPipeline(self):
-        pipelines = (self.cfg.data.train.pipeline if self.mode=='train' else self.cfg.data.test.pipeline)[1:-3]
+        if self.sample_mode == 'sequence':
+            pipelines = (self.cfg.data.train.pipeline if self.mode=='train' else self.cfg.data.test.pipeline)[1:-3]
+        elif self.sample_mode == 'uniform':
+            pipelines = (self.cfg.data.train.pipeline if self.mode=='train' else self.cfg.data.test.pipeline)[:-3]
         self._preprocess = Compose(pipelines)
     
     def _toTensor(self, buffer):
@@ -180,28 +213,36 @@ class PoseC3DTransform:
 
     def _load_video(self, video):
         buffer = copy.deepcopy(video)
-        if 'num_clips' in buffer:
+        if 'num_clips' not in buffer:
             buffer['num_clips'] = self.num_clips
-        if 'clip_len' in buffer:
+        if 'clip_len' not in buffer:
             buffer['clip_len'] = self.sample_duration * (buffer['total_frames'] // self.sample_duration)
-        if 'modality' in buffer:
+        if 'modality' not in buffer:
             buffer['modality'] = self.modality
-        if 'start_index' in buffer:
+        if 'start_index' not in buffer:
             buffer['start_index'] = self.start_index
 
         return buffer
 
     def __call__(self, video):
 
-        if not self.cache or video not in self.cache:
+        if not self.ram:
             buffer = self._load_video(video)
             buffer = self._preprocess(buffer)['imgs']
-            buffer = self._sample(buffer)
+            if self.sample_mode == 'sequence':
+                buffer = self._sample(buffer)
             buffer = self._toTensor(buffer)
-            self.cache[video] = buffer
         else:
-            buffer = self.cache[video]
-        
+            if video['frame_dir'] not in self.cache:
+                buffer = self._load_video(video)
+                buffer = self._preprocess(buffer)['imgs']
+                if self.sample_mode == 'sequence':
+                    buffer = self._sample(buffer)
+                buffer = self._toTensor(buffer)
+                self.cache[video['frame_dir']] = buffer
+            else:
+                buffer = self.cache[video['frame_dir']]
+
         return buffer
 
 def print_model(model):
